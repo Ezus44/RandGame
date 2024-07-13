@@ -132,9 +132,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AIHand.cpp" />
+    <ClCompile Include="AIMind.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="BaseRealisationMenu.cpp" />
     <ClCompile Include="Card.cpp" />
     <ClCompile Include="ChoiceMenu.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameOverMenu.cpp" />
     <ClCompile Include="Hand.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Menu.cpp" />
@@ -143,8 +147,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AIHand.h" />
+    <ClInclude Include="AIMind.h" />
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="BaseRealisationMenu.h" />
     <ClInclude Include="Card.h" />
     <ClInclude Include="ChoiceMenu.h" />
+    <ClInclude Include="GameOverMenu.h" />
     <ClInclude Include="Hand.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Menu.h" />

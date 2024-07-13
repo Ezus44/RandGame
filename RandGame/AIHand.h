@@ -1,18 +1,18 @@
 #pragma once
 #include "Hand.h"
+#include "AIMind.h"
+
 class AIHand : public Hand
 {
 public:
-	void AddCard(Card card) override {
-		handCards.insert({ card.GetValue(), card });
+	AIHand(int numPlace) : Hand(numPlace)
+	{
 	}
-	void TakeCards(std::multimap <Value, Card>& otherHandCards) override;
+	void DrawHand(sf::RenderWindow& window) override;
 	void PutOutCards() override;
-	std::multimap <Value, Card> GetCards() override {
-		return handCards;
-	}
-
-
-
-
+	void HandleHandWindowEvent(const sf::Event& event);
+	void CheckFours() override;
+	AIMind& GetMind() { return mind; }
+private:
+	AIMind mind;
 }; 

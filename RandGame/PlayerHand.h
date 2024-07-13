@@ -3,19 +3,11 @@
 class PlayerHand : public Hand
 {
 public:
-	void AddCard(Card card) override {
-		handCards.insert({ card.GetValue(), card });
-	}
-
-       
-	void TakeCards(std::multimap <Value, Card>& otherHandCards) override;
+	using Hand::Hand;
 	void PutOutCards() override;
 
-	
-	std::multimap <Value, Card> GetCards() override {
-		return handCards;
-	}
+	void CheckFours() override;
 
-
+	void DrawHand(sf::RenderWindow& window) override;
 
 };

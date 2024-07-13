@@ -2,176 +2,139 @@
 #include <assert.h>
 
 
-	void Menu::Init(const MenuItem& item)
-	{
-		rootItem = item;
 
-		rootItem.InitMenuItem();
-		if (!rootItem.GetChildren().empty())
-		{
-			SelectMenuItem(rootItem.GetChildren().front());
-		}
-	}
-
-	void MenuItem::InitMenuItem()
-	{
-		for (auto& child : children)
-		{
-			child.parent = this;
-			child.InitMenuItem();
-		}
-	}
-
-	void MenuItem::SetTextParameters(sf::Font& font, const std::string& title, int fontSize, sf::Color color)
-	{
-		text.setString(title);
-		text.setFont(font);
-		text.setCharacterSize(fontSize);
-		if (color != sf::Color::Transparent)
-		{
-			text.setFillColor(color);
-		}
-	}
-
-	void MenuItem::SetHintTextParameters(sf::Font& font, const std::string& title, int fontSize, sf::Color color)
-	{
-		hintText.setString(title);
-		hintText.setFont(font);
-		hintText.setCharacterSize(fontSize);
-		if (color != sf::Color::Transparent)
-		{
-			hintText.setFillColor(color);
-		}
-	}
-
-	void MenuItem::SetChildrenParameters(Orientation orientation, Alignment alignment, float spacing)
-	{
-		childrenOrientation = orientation;
-		childrenAlignment = alignment;
-		childrenSpacing = spacing;
-	}
-
-	void MenuItem::AddChild(MenuItem& child)
-	{
-		children.push_back(child);
-	}
+MenuItem::MenuItem(sf::Font& font, const std::string& title, int fontSize, sf::Color color) : deselectedColor(color)
+{
+    text.setString(title);
+    text.setFont(font);
+    text.setCharacterSize(fontSize);
+  
+    text.setFillColor(deselectedColor);
+   
+}
 
 
-	void Menu::Draw(sf::RenderWindow& window, sf::Vector2f position, sf::Vector2f origin)
-	{
-		MenuItem& expandedItem = GetCurrentContext();
+void Page::AddMenuItem(MenuItem& menuItem)
+{
+    menuItems.push_back(menuItem);
+}
 
-		std::vector<sf::Text*> texts;
-		texts.reserve(expandedItem.GetChildren().size());
-		for (auto& child : expandedItem.GetChildren())
-		{
-			if (child.IsEnabled())
-			{
-				sf::Text* text = child.GetText();
-				texts.push_back(text);
-			}
-		}
+void Page::SetNextPage(Page& nextPage)
+{
+    this->nextPage = &nextPage;
+}
 
-		DrawTextList(window, texts, expandedItem.GetChildrenSpacing(), expandedItem.GetChildrenOrientation(), expandedItem.GetChildrenAlignment(), position, origin);
-	}
 
-	void Menu::PressOnSelectedItem()
-	{
-		if (!selectedItem)
-		{
-			return;
-		}
+void Menu::SelectItem()
+{
+    const std::vector<MenuItem>& items = currentPage.GetMenuItems();
+    if (!items.empty())
+    {
+        SelectMenuItem(items.front());
+    }
+}
 
-		if (selectedItem->onPressCallback)
-		{
-			selectedItem->onPressCallback(*selectedItem);
-			return;
-		}
+void Menu::Draw(sf::RenderWindow& window, sf::Vector2f position, sf::Vector2f origin)
+{
 
-		if (!selectedItem->GetChildren().empty())
-		{
-			SelectMenuItem(selectedItem->GetChildren().front());
-		}
-	}
+    std::vector<sf::Text*> texts;
+    texts.reserve(currentPage.GetMenuItems().size());
+    for (auto& item : currentPage.GetMenuItems())
+    {
+        if (item.IsEnabled())
+        {
+            texts.push_back(item.GetText());
+        }
+    }
 
-	void Menu::GoBack()
-	{
-		MenuItem& parent = GetCurrentContext();
+    DrawTextList(window, texts, currentPage.GetPageSpacing(), currentPage.GetPageOrientation(), currentPage.GetPageAlignment(), position, origin);
+}
 
-		if (&parent != &rootItem)
-		{
-			SelectMenuItem(parent);
-		}
-	}
+void Menu::PressOnSelectedItem()
+{
+    if (!selectedItem)
+    {
+        return;
+    }
 
-	void Menu::SwitchToPreviousItem()
-	{
-		if (!selectedItem)
-		{
-			return;
-		}
-		MenuItem* parent = selectedItem->GetParent();
-		assert(parent); // There always should be parent
+    if (selectedItem->onPressCallback)
+    {
+        selectedItem->onPressCallback(*selectedItem);
+        return;
+    }
+}
 
-		auto it = std::find_if(parent->GetChildren().begin(), parent->GetChildren().end(), [this](const auto& item)
-		{
-			return selectedItem == &item;
-		});
-		if (it != parent->GetChildren().begin())
-		{
-			SelectMenuItem(*std::prev(it));
-		}
-	}
 
-	void Menu::SwitchToNextItem()
-	{
-		if (!selectedItem) {
-			return;
-		}
 
-		MenuItem* parent = selectedItem->GetParent();
-		assert(parent); // There always should be parent
+void Menu::SwitchToPreviousItem()
+{
+    if (!selectedItem)
+    {
+        return;
+    }
+    std::vector<MenuItem>& items = currentPage.GetMenuItems();
+    auto it = std::find_if(items.begin(), items.end(), [this](const MenuItem& item) {
+        return selectedItem == &item;
+        });
 
-		auto it = std::find_if(parent->GetChildren().begin(), parent->GetChildren().end(), [this](const auto& item) {
-			return selectedItem == &item;
-		});
-		it = std::next(it);
-		if (it != parent->GetChildren().end()) {
-			SelectMenuItem(*it);
-		}
-	}
+    if (it != items.begin())
+    {
+        SelectMenuItem(*std::prev(it));
+    }
+}
 
-	void Menu::SelectMenuItem(const MenuItem& item)
-	{
-		assert(&item != &rootItem);
+void Menu::SwitchToNextItem()
+{
+    if (!selectedItem)
+    {
+        return;
+    }
 
-		if (selectedItem == &item)
-		{
-			return;
-		}
 
-		if (!item.IsEnabled())
-		{
-			// Don't allow to select disabled item
-			return;
-		}
 
-		if (selectedItem)
-		{
-			sf::Text* text = selectedItem->GetText();
-			text->setFillColor(selectedItem->GetDeselectedColor());
-		}
+    const std::vector<MenuItem>& items = currentPage.GetMenuItems();
+    auto it = std::find_if(items.begin(), items.end(), [this](const MenuItem& item) {
+        return selectedItem == &item;
+        });
 
-		selectedItem = const_cast<MenuItem*>(&item); // Убираем константность временного объекта
+    ++it;
+    if (it != items.end())
+    {
+        SelectMenuItem(*it);
+    }
+}
 
-		if (selectedItem)
-		{
-			sf::Text* text = selectedItem->GetText();
-			text->setFillColor(selectedItem->GetSelectedColor());
-		}
-	}
+void Menu::SwitchToNextPage()
+{
+    if (currentPage.GetNextPage())
+    { 
+        currentPage = *(currentPage.GetNextPage());
+        SelectItem();
+                
+    }
+}
 
-	MenuItem& Menu::GetCurrentContext()
-	{
-		return selectedItem ? *(selectedItem->GetParent()) : rootItem;
-	}
+void Menu::SelectMenuItem(const MenuItem& item)
+{
+
+   
+    if (!item.IsEnabled())
+    {
+        // Don't allow to select disabled item
+        return;
+    }
+
+    if (selectedItem)
+    {
+        sf::Text* text = selectedItem->GetText();
+        text->setFillColor(selectedItem->GetDeselectedColor());
+    }
+
+    selectedItem = const_cast<MenuItem*>(&item); 
+
+    if (selectedItem)
+    {
+        sf::Text* text = selectedItem->GetText();
+        text->setFillColor(selectedItem->GetSelectedColor());
+    }
+}

@@ -69,11 +69,12 @@ Card::Card(int s, int v)
     }
 	
 }
-void Card::Draw(sf::RenderWindow& window)
+void Card::Draw(sf::RenderWindow& window, const float scale, float& positionX, float& positionY)
 {
     assert(texture.loadFromFile("Resources/Tset.png"));
     sprite.setTextureRect(sf::IntRect(x_shift, y_shift, 62, 90));
-    sprite.setPosition(x_shift, y_shift);
     sprite.setTexture(texture);
+    sprite.setScale(scale, scale); 
+    sprite.setPosition(positionX, positionY); 
 	window.draw(sprite);
 }
