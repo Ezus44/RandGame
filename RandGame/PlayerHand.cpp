@@ -1,4 +1,5 @@
 ﻿#include "PlayerHand.h"
+#include "AIMind.h"
 
 
 void PlayerHand::CheckFours()
@@ -7,6 +8,7 @@ void PlayerHand::CheckFours()
 	{
 		if (handCards.count(card.first) == 4)
 		{
+			AIMind::LearnOutGameInfo(card.first);
 			foursCards.insert(card.first);
 		}
 	}
@@ -28,8 +30,9 @@ void PlayerHand::DrawHand(sf::RenderWindow& window)
 	window.draw(replicaText);
 	const float scale = 0.9f;  // Scale factor for reducing size
 	const float spacing = 10.0f;  // Spacing between cards
-
+	const float foursScale = 0.6f;
 	int cardIndex = 0;
+	int foursIndex = 0;
 	for (auto& pair : handCards)
 	{
 		Card& card = pair.second;
@@ -47,12 +50,12 @@ void PlayerHand::DrawHand(sf::RenderWindow& window)
 		}
 		else if (cardIndex >= 12 && cardIndex < 18)
 		{
-			x = static_cast<float>(cardIndex * (62.f * scale + spacing) + spacing);
+			x = static_cast<float>((cardIndex-6) * (62.f * scale + spacing) + spacing + 200);
 			y = 800.0f;  // Adjust the y-coordinate as needed
 		}
 		else if (cardIndex >= 18 && cardIndex < 24)
 		{
-			x = static_cast<float>((cardIndex - 6) * (62.f * scale + spacing) + spacing);
+			x = static_cast<float>((cardIndex - 12) * (62.f * scale + spacing) + spacing + 200);
 			y = 900.0f;  // Adjust the y-coordinate as needed
 		}
 
@@ -61,6 +64,22 @@ void PlayerHand::DrawHand(sf::RenderWindow& window)
 
 		// Increment card index
 		++cardIndex;
+	}
+	for (auto& four : foursCards)
+	{
+		Card card(four);
+		float x, y;  // Position of the card on the table
+		// Calculate position based on index
+	
+		x = static_cast<float>(foursIndex * (62.f * foursScale + spacing) + spacing);
+		y = 700.0f;  // Adjust the y-coordinate as needed
+		
+
+		// Draw the card
+		card.Draw(window, foursScale, x, y);
+
+		// Increment card index
+		++foursIndex;
 	}
 }
 

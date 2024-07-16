@@ -14,7 +14,7 @@ public:
 	std::deque<std::string>& GetDialog() { return dialog; }
 	void NotChoosedForQuestions() { choosedForQuestions = false; }
 	void ChoosedForQuestions() { choosedForQuestions = true; }
-	bool isChoosedForQuestions() { return choosedForQuestions; }
+	bool isChoosedForQuestions() const { return choosedForQuestions; }
 	virtual void CheckFours() = 0;
 	bool CheckCards(Value value);
 	bool CheckCards(Value value, int numCards);

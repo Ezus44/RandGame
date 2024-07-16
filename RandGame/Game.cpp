@@ -158,7 +158,7 @@ bool Game::Update(float timeDelta)
 				{
 					if (isRight)
 					{
-						SwapCards(kingSlayerHand, valueForSwap);
+						SwapCards(higherMindHand, valueForSwap);
 						SetHigherMindTurn();
 					}
 					else

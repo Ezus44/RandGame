@@ -69,6 +69,41 @@ Card::Card(int s, int v)
     }
 	
 }
+Card::Card(Value v)
+{
+    y_shift = 0;
+    switch (v) {
+    case Value::A:
+        x_shift = 0;
+        break;
+    case Value::Six:
+        x_shift = 307;
+        break;
+    case Value::Seven:
+        x_shift = 369;
+        break;
+    case Value::Eight:
+        x_shift = 430;
+        break;
+    case Value::Nine:
+        x_shift = 492;
+        break;
+    case Value::Ten:
+        x_shift = 553;
+        break;
+    case Value::J:
+        x_shift = 615;
+        break;
+    case Value::Q:
+        x_shift = 676;
+        break;
+    case Value::K:
+        x_shift = 738;
+        break;
+    default:
+        assert(0);
+    }
+}
 void Card::Draw(sf::RenderWindow& window, const float scale, float& positionX, float& positionY)
 {
     assert(texture.loadFromFile("Resources/Tset.png"));

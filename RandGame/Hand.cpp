@@ -21,8 +21,8 @@ void Hand::TakeCards(Hand& otherHand, Value cardsValue)
 {
 	auto cardsToTake = otherHand.GetCards().equal_range(cardsValue);
 
-	for (auto it = cardsToTake.first; it != cardsToTake.second; ++it) {
-		handCards.insert(*it);
+	for (auto it = cardsToTake.first; it != cardsToTake.second; ) {
+		handCards.insert(*it++);
 	}
 
 	otherHand.GetCards().erase(cardsToTake.first, cardsToTake.second);

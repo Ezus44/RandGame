@@ -20,17 +20,16 @@ checkValue(Value::A)
     wrongText.setCharacterSize(24);
     wrongText.setFillColor(sf::Color::Red);
     wrongText.setString("");
-    wrongText.setPosition(320.f, 460.f);
+    wrongText.setPosition(420.f, 560.f);
 
     firstPage.SetNextPage(secondPage); 
     secondPage.SetNextPage(thirdPage); 
     thirdPage.SetNextPage(fourthPage); 
 	fourthPage.SetNextPage(fifthPage);
-    // Добавление элементов на первую страницу
+
     addValueItems(firstPage);
 
 
-    // Выбор первого элемента в меню
     menu.SelectItem();
 }
 
@@ -42,7 +41,7 @@ void ChoiceMenu::addValueItems(Page& page) {
             Game& game = Application::Instance().GetGame();
             if (game.WithWhomSwap()->CheckCards(checkValue))
             {
-                // Добавление элементов на вторую страницу
+                
                 addNumberItems();
                 menu.SwitchToNextPage();
             }
@@ -58,7 +57,7 @@ void ChoiceMenu::addValueItems(Page& page) {
 
 
 void ChoiceMenu::addNumberItems() {
-    // Добавление элемента "One"
+    
     addMenuItem(secondPage, "One", [this](MenuItem&) {
         Game& game = Application::Instance().GetGame();
         if (game.WithWhomSwap()->CheckCards(checkValue, 1))
@@ -73,7 +72,7 @@ void ChoiceMenu::addNumberItems() {
         }
         });
 
-    // Добавление элемента "Two"
+    
     addMenuItem(secondPage, "Two", [this](MenuItem&) {
         Game& game = Application::Instance().GetGame();
         if (game.WithWhomSwap()->CheckCards(checkValue, 2))
@@ -90,7 +89,7 @@ void ChoiceMenu::addNumberItems() {
         }
         });
 
-    // Добавление элемента "Three"
+    
     addMenuItem(secondPage, "Three", [this](MenuItem&) {
         Game& game = Application::Instance().GetGame();
         if (game.WithWhomSwap()->CheckCards(checkValue, 3))
@@ -108,7 +107,7 @@ void ChoiceMenu::addNumberItems() {
 }
 
 void ChoiceMenu::addBlackRedItems() {
-    // Добавление элемента "Black"
+   
     addMenuItem(thirdPage, "Black", [this](MenuItem&) {
         if (isChoosingTwo) {
             Game& game = Application::Instance().GetGame();
@@ -139,7 +138,7 @@ void ChoiceMenu::addBlackRedItems() {
         }
         });
 
-    // Добавление элемента "Red"
+   
     addMenuItem(thirdPage, "Red", [this](MenuItem&) {
         if (isChoosingTwo) {
             Game& game = Application::Instance().GetGame();
@@ -171,7 +170,7 @@ void ChoiceMenu::addBlackRedItems() {
 }
 
 void ChoiceMenu::addBlackAndRedItem() {
-    // Добавление элемента "Black & Red"
+    
     addMenuItem(thirdPage, "Black & Red", [this](MenuItem&) {
         Game& game = Application::Instance().GetGame();
 		if (game.WithWhomSwap()->CheckCards(checkValue, 2, "Mixed"))

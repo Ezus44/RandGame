@@ -55,10 +55,10 @@ private:
 	std::unique_ptr<BaseRealisationMenu> gameOverMenu;
 	AIHand* currentAIHand = nullptr; 
 	Hand* targetHand = nullptr; 
-	float delay = 1.f;
+	float delay = 0.5f;
 	size_t dialogSize = 0;
 	size_t currentDialogIndex = 0;
 	float timeForDelay = 0.f;
 	bool isRight = false;
-	Value valueForSwap;
+	Value valueForSwap = Value::A;
 };

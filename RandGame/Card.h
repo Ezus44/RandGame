@@ -15,6 +15,7 @@ enum class Value { A, Six, Seven, Eight, Nine, Ten, J , Q , K };
 	public:
 	
 		Card(int s, int v);
+		Card(Value v);
 		const Suit& GetSuit() const { return suit; }
 		const Value& GetValue() const {return value; }
 		void Draw(sf::RenderWindow& window, const float scale, float& positionX, float& positionY);
