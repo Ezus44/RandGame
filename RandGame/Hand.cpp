@@ -13,7 +13,7 @@ void Hand::DrawDialog()
 void Hand::ClearDialog()
 {
 	dialog.clear();
-	replica = "Cleared"; 
+	replica = ""; 
 	replicaText.setString(replica);
 }
 
@@ -31,7 +31,7 @@ void Hand::TakeCards(Hand& otherHand, Value cardsValue)
 Hand::Hand(int num)
 {
 	foursNum = 0;
-	replica = "Chat";
+	replica = "";
 	SetPlaceNum(num);
 	table.setSize(sf::Vector2f(200, 200));
 	table.setFillColor(sf::Color::Red);

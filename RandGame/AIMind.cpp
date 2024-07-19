@@ -471,10 +471,13 @@ void AIMind::SetPrivateInfo(Hand* leftHand, Hand* rightHand, Hand* myHand)
         }
         std::pair<Hand*, Value> key_l = std::make_pair(leftHand, v);
         std::pair<Hand*, Value> key_r = std::make_pair(rightHand, v);
-        auto it_l = privateInfo.find(key_l);
-        auto it_r = privateInfo.find(key_r);
-        if (it_l != privateInfo.end()) {
-            privateInfo[key_l].RemovePossibleSuits(mySuits); 
+        auto it_l = privateInfo.find(key_l); 
+        auto it_r = privateInfo.find(key_r); 
+        if (it_l != privateInfo.end()) 
+        {
+            privateInfo[key_l].RemovePossibleSuits(mySuits);
+            if (leftHand->GetCards().size() < 3) { privateInfo[key_l].RemovePossibleNum(3); }
+            if (leftHand->GetCards().size() < 2) { privateInfo[key_l].RemovePossibleNum(2); }
             if (myHand->GetCards().count(v) == 1)
             {
                 if (it_r != privateInfo.end())
@@ -521,59 +524,61 @@ void AIMind::SetPrivateInfo(Hand* leftHand, Hand* rightHand, Hand* myHand)
                 if (blackNum == 2) { privateInfo[key_l].ConfirmPossibleColors("Red"); }
                 else if (redNum == 2) { privateInfo[key_l].ConfirmPossibleColors("Black"); }
             }
-
-            if (it_r != privateInfo.end()) {
-                privateInfo[key_r].RemovePossibleSuits(mySuits);
-                if (myHand->GetCards().count(v) == 1)
-                {
-                    if (it_l != privateInfo.end())
-                    {
-                        privateInfo[key_r].RemovePossibleNum(3);
-                        if (privateInfo[key_l].GetPossibleNum().size() == 1 && *privateInfo[key_l].GetPossibleNum().begin() == 2)
-                        {
-                            privateInfo[key_r].RemovePossibleNum(2);
-                        }
-                        if (privateInfo[key_l].GetPossibleColors().size() == 1 && *privateInfo[key_l].GetPossibleColors().begin() != "Mixed")
-                        {
-                            privateInfo[key_r].RemovePossibleColors(*privateInfo[key_l].GetPossibleColors().begin());
-                        }
-                    }
-                }
-                else if (myHand->GetCards().count(v) == 2)
+        }
+        if (it_r != privateInfo.end()) 
+        {
+            privateInfo[key_r].RemovePossibleSuits(mySuits);
+            if (rightHand->GetCards().size() < 3) { privateInfo[key_r].RemovePossibleNum(3); } 
+            if (rightHand->GetCards().size() < 2) { privateInfo[key_r].RemovePossibleNum(2); } 
+            if (myHand->GetCards().count(v) == 1)
+            {
+                if (it_l != privateInfo.end())
                 {
                     privateInfo[key_r].RemovePossibleNum(3);
-                    if (it_l != privateInfo.end()) { privateInfo[key_r].RemovePossibleNum(2); }
-                    if (blackNum == 0 && redNum == 2)
+                    if (privateInfo[key_l].GetPossibleNum().size() == 1 && *privateInfo[key_l].GetPossibleNum().begin() == 2)
                     {
-                        privateInfo[key_r].ConfirmPossibleColors("Black");
+                        privateInfo[key_r].RemovePossibleNum(2);
                     }
-                    else if (blackNum == 2 && redNum == 0)
+                    if (privateInfo[key_l].GetPossibleColors().size() == 1 && *privateInfo[key_l].GetPossibleColors().begin() != "Mixed")
                     {
-                        privateInfo[key_r].ConfirmPossibleColors("Red");
+                        privateInfo[key_r].RemovePossibleColors(*privateInfo[key_l].GetPossibleColors().begin());
                     }
-                    else if (blackNum == 1 && redNum == 1)
-                    {
-                        if (privateInfo[key_r].GetPossibleNum().size() == 1 && *privateInfo[key_r].GetPossibleNum().begin() == 2)
-                        {
-                            privateInfo[key_r].ConfirmPossibleColors("Mixed");
-                        }
-                        else if (it_l != privateInfo.end() && privateInfo[key_l].GetPossibleColors().size() == 1)
-                        {
-                            privateInfo[key_r].RemovePossibleColors(*privateInfo[key_l].GetPossibleColors().begin());
-                        }
-                    }
-
                 }
-                else if (myHand->GetCards().count(v) == 3)
+            }
+            else if (myHand->GetCards().count(v) == 2)
+            {
+                privateInfo[key_r].RemovePossibleNum(3);
+                if (it_l != privateInfo.end()) { privateInfo[key_r].RemovePossibleNum(2); }
+                if (blackNum == 0 && redNum == 2)
                 {
-                    privateInfo[key_r].ConfirmPossibleNum(1);
-                    if (blackNum == 2) { privateInfo[key_r].ConfirmPossibleColors("Red"); }
-                    else if (redNum == 2) { privateInfo[key_r].ConfirmPossibleColors("Black"); }
+                    privateInfo[key_r].ConfirmPossibleColors("Black");
+                }
+                else if (blackNum == 2 && redNum == 0)
+                {
+                    privateInfo[key_r].ConfirmPossibleColors("Red");
+                }
+                else if (blackNum == 1 && redNum == 1)
+                {
+                    if (privateInfo[key_r].GetPossibleNum().size() == 1 && *privateInfo[key_r].GetPossibleNum().begin() == 2)
+                    {
+                        privateInfo[key_r].ConfirmPossibleColors("Mixed");
+                    }
+                    else if (it_l != privateInfo.end() && privateInfo[key_l].GetPossibleColors().size() == 1)
+                    {
+                        privateInfo[key_r].RemovePossibleColors(*privateInfo[key_l].GetPossibleColors().begin());
+                    }
                 }
 
             }
+            else if (myHand->GetCards().count(v) == 3)
+            {
+                privateInfo[key_r].ConfirmPossibleNum(1);
+                if (blackNum == 2) { privateInfo[key_r].ConfirmPossibleColors("Red"); }
+                else if (redNum == 2) { privateInfo[key_r].ConfirmPossibleColors("Black"); }
+            }
 
-        }
+        }          
+
     }
 }
 
