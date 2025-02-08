@@ -1,8 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
-enum class Suit { Clubs , Diamonds , Hearts , Spades };
-enum class Value { A, Six, Seven, Eight, Nine, Ten, J , Q , K };
+enum class Suit { Clubs, Diamonds, Hearts, Spades };
+enum class Value { A, Six, Seven, Eight, Nine, Ten, J, Q, K };
 
 	class Card 
 	{
