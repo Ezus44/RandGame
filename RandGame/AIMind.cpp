@@ -4,357 +4,356 @@
 #include <set> 
 #include <ranges>
 
-std::map <std::pair<Hand*, Value>, KnownInfo> AIMind::inGameInfo;
-std::vector <Value> AIMind::outGameValue;
-bool AIMind::GuessTry(Hand* leftHand, Hand* rightHand, Hand* myHand, Value& valueForSwap)
+namespace
 {
-    SetPrivateInfo(leftHand, rightHand, myHand);
-    CheckForPriority();
-    Hand* chosenHand = ChooseHand(leftHand, rightHand);
-    chosenHand->ChoosedForQuestions();
-	Hand* notChosenHand = (chosenHand == leftHand) ? rightHand : leftHand;
-    Value guessingValue = GuessValue(chosenHand);
-    myHand->AddReplica(valueToString(guessingValue));
- 
-    if (!(chosenHand->CheckCards(guessingValue)))
+    // Универсальная функция выбора случайного элемента из контейнера
+    template <typename Container, typename RNG>
+    auto random_choice(const Container& container, RNG& gen)
     {
-		chosenHand->AddReplica("No");
-        std::pair<Hand*, Value> key = std::make_pair(notChosenHand, guessingValue);
-        SetCurrentInfo(key, leftHand, rightHand, myHand);
-        return false;
-    }
-    else
-    {
-        chosenHand->AddReplica("Yes");
-        std::pair<Hand*, Value> key = std::make_pair(chosenHand, guessingValue);
-        SetCurrentInfo(key, leftHand, rightHand, myHand);
-
-        int guessingNum = GuessNum();
-        myHand->AddReplica(std::to_string(guessingNum));
-    
-        if (!(chosenHand->CheckCards(guessingValue, guessingNum)))
-        {
-           chosenHand->AddReplica("No");
-           inGameInfo[key].RemovePossibleNum(guessingNum);
-           return false;
-        }
-		else if (guessingNum == 2 || guessingNum == 1)
-        {
-            chosenHand->AddReplica("Yes");
-            inGameInfo[key].ConfirmPossibleNum(guessingNum);
-            SetCurrentInfo(key, leftHand, rightHand, myHand); 
-       
-            std::string guessingColor = GuessColor(guessingNum);
-            myHand->AddReplica(guessingColor);
-            if(!(chosenHand->CheckCards(guessingValue, guessingNum, guessingColor)))
-            {
-                chosenHand->AddReplica("No");
-                inGameInfo[key].RemovePossibleColors(guessingColor);
-                return false;
-            }
-            else
-            {
-                chosenHand->AddReplica("Yes");
-                if (guessingNum == 2 && guessingColor != "Mixed")
-                {
-                    valueForSwap = guessingValue; 
-                    inGameInfo.erase(key);
-                    if (myHand->GetCards().count(guessingValue) + guessingNum != 4)
-                    {
-                        inGameInfo[std::make_pair(notChosenHand, guessingValue)].SetPriority();
-                        inGameInfo[std::make_pair(notChosenHand, guessingValue)].ConfirmPossibleNum(4 - (myHand->GetCards().count(guessingValue) + guessingNum));
-                        inGameInfo[std::make_pair(myHand, guessingValue)].RemovePossibleNum(1);
-                        if (guessingColor == "Red") 
-                        { 
-                            inGameInfo[std::make_pair(myHand, guessingValue)].ConfirmPossibleColors("Red");
-                            inGameInfo[std::make_pair(myHand, guessingValue)].GetPossibleSuits().remove({ Suit::Spades, Suit::Clubs, Suit::Diamonds });
-                            inGameInfo[std::make_pair(myHand, guessingValue)].GetPossibleSuits().remove({ Suit::Spades, Suit::Clubs, Suit::Hearts });
-                        }
-                        else if (guessingColor == "Black") 
-                        { 
-                            inGameInfo[std::make_pair(myHand, guessingValue)].ConfirmPossibleColors("Black");
-                            inGameInfo[std::make_pair(myHand, guessingValue)].GetPossibleSuits().remove({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
-                            inGameInfo[std::make_pair(myHand, guessingValue)].GetPossibleSuits().remove({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
-                        }
-                    }
-					return true;
-                }
-                inGameInfo[key].ConfirmPossibleColors(guessingColor);
-                SetCurrentInfo(key, leftHand, rightHand, myHand);
-                std::list<Suit> guessingSuits = GuessSuits();
-                myHand->AddReplica(suitsToString(guessingSuits));
-                if (!(chosenHand->CheckCards(guessingValue, guessingSuits)))
-                {
-                    chosenHand->AddReplica("No");
-                    inGameInfo[key].GetPossibleSuits().remove(guessingSuits);
-                    return false;
-                }
-                else 
-				{
-                    chosenHand->AddReplica("Yes");
-                    valueForSwap = guessingValue; 
-                    inGameInfo.erase(key);
-                    if (myHand->GetCards().count(guessingValue) + guessingNum != 4)
-                    {
-                        inGameInfo[std::make_pair(notChosenHand, guessingValue)].SetPriority();
-                        inGameInfo[std::make_pair(notChosenHand, guessingValue)].ConfirmPossibleNum(4 - (myHand->GetCards().count(guessingValue) + guessingNum));
-                        inGameInfo[std::make_pair(myHand, guessingValue)].GetPossibleSuits().remove({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
-                        if (guessingColor == "Red")
-                        {
-                            inGameInfo[std::make_pair(myHand, guessingValue)].RemovePossibleColors("Black");
-                            inGameInfo[std::make_pair(myHand, guessingValue)].ConfirmPossibleSuits(guessingSuits);
-                        }
-                        else if (guessingColor == "Black")
-                        {
-                            inGameInfo[std::make_pair(myHand, guessingValue)].RemovePossibleColors("Red");
-                            inGameInfo[std::make_pair(myHand, guessingValue)].ConfirmPossibleSuits(guessingSuits); 
-                        }
-                        if (guessingNum == 2) { inGameInfo[std::make_pair(myHand, guessingValue)].RemovePossibleNum(1); }
-                    }
-					return true;
-				}
-            }
-        }
-        else
-        {
-            chosenHand->AddReplica("Yes");
-            inGameInfo[key].ConfirmPossibleNum(guessingNum);
-            SetCurrentInfo(key, leftHand, rightHand, myHand);
-            std::list<Suit> guessingSuits = GuessSuits();
-            myHand->AddReplica(suitsToString(guessingSuits));
-            if (!(chosenHand->CheckCards(guessingValue, guessingSuits)))
-            {
-                chosenHand->AddReplica("No");
-                inGameInfo[key].GetPossibleSuits().remove(guessingSuits); 
-                return false;
-            }
-            else
-            {
-                chosenHand->AddReplica("Yes");;
-                valueForSwap = guessingValue;
-                inGameInfo.erase(key);
-                if (myHand->GetCards().count(guessingValue) + guessingNum != 4)
-                {
-                    inGameInfo[std::make_pair(notChosenHand, guessingValue)].SetPriority();
-                    inGameInfo[std::make_pair(notChosenHand, guessingValue)].ConfirmPossibleNum(1);
-                    inGameInfo[std::make_pair(myHand, guessingValue)].ConfirmPossibleNum(3); 
-                    inGameInfo[std::make_pair(myHand, guessingValue)].ConfirmPossibleSuits(guessingSuits); 
-                }
-                return true;
-            }
-        }
-    }
-}
-
-Hand* AIMind::ChooseHand(Hand* leftHand, Hand* rightHand)
-{
-    std::random_device rd; 
-    std::mt19937 gen(rd()); 
-
-   
-    if (leftHand->GetCards().size() == 0)
-    {
-		return rightHand;
-    }
-    else if (rightHand->GetCards().size() == 0)
-    {
-		return leftHand;
-    }
-    else {
-        std::set<Hand*> hands;
-
-        if (!privateInfo.empty()) 
-        {
-            for (auto& info : privateInfo)
-            {
-                if (info.second.IsPriority())
-                {
-                    if (info.first.first == leftHand) { hands.insert(leftHand); }
-                    else if (info.first.first == rightHand) { hands.insert(rightHand); }
-                }
-            }
-        }
-        if (hands.size() == 0)
-        {
-            hands.insert(leftHand);
-            hands.insert(rightHand);
-        }
-        std::uniform_int_distribution<int> distrib(0, (int) hands.size() -1);
-
-        int randomIndex = distrib(gen); 
-
-        auto it = hands.begin(); 
-        std::advance(it, randomIndex); 
-
-
+        std::uniform_int_distribution<size_t> distrib(0, container.size() - 1);
+        auto it = container.begin();
+        std::advance(it, distrib(gen));
         return *it;
     }
 }
 
-Value AIMind::GuessValue(Hand* owner) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::vector<Value> possibleValues; 
-   
-    if (!privateInfo.empty()) {
-        for (auto& info : privateInfo)
+
+std::map <std::pair<Hand*, Value>, KnownInfo> AIMind::inGameInfo;
+std::vector <Value> AIMind::outGameValue;
+
+void AIMind::AddYesNoReplica(Hand* hand, bool answer)
+{
+    hand->AddReplica(answer ? "Yes" : "No");
+}
+
+void AIMind::UpdateInfoNum(Hand* hand, const Value& value, int num, bool confirm)
+{
+    if (confirm)
+        inGameInfo[{hand, value}].ConfirmPossibleNum(num);
+    else
+        inGameInfo[{hand, value}].RemovePossibleNum(num);
+}
+
+void AIMind::UpdateInfoColor(Hand* hand, const Value& value, const CardColor& color, bool confirm)
+{
+    if (confirm)
+        inGameInfo[{hand, value}].ConfirmPossibleColors(color);
+    else
+        inGameInfo[{hand, value}].RemovePossibleColors(color);
+}
+
+void AIMind::RemoveOrConfirmSuits(Hand* hand, const Value& value, const std::list<Suit>& suits, bool confirm)
+{
+    if (confirm)
+        inGameInfo[{hand, value}].ConfirmPossibleSuits(suits);
+    else
+        inGameInfo[{hand, value}].GetPossibleSuits().remove(suits);
+}
+
+void AIMind::ProcessNotFourCase(Hand* myHand, Hand* otherHand, const Value& value, 
+                                int guessingNum, const CardColor& color, const std::list<Suit>& suits)
+{
+    inGameInfo[{otherHand, value}].SetPriority();
+    int haveNum = static_cast<int>(myHand->GetCards().count(value));
+    inGameInfo[{otherHand, value}].ConfirmPossibleNum(4 - (haveNum + guessingNum));
+
+    if (color != CardColor::Mixed) // Mixed можно игнорировать или обрабатывать отдельно
+    {
+        switch (color)
         {
-            if (info.second.IsPriority())
-            {
-                if (info.first.first == owner)
-                {
-                    if (std::ranges::find(outGameValue, info.first.second) == outGameValue.end())
-                    {
-                        possibleValues.push_back(info.first.second);
-                    }
-                }
-            }
+        case CardColor::Red:
+            UpdateInfoColor(myHand, value, CardColor::Red, true);
+            inGameInfo[{myHand, value}].GetPossibleSuits().remove({ Suit::Spades, Suit::Clubs, Suit::Diamonds });
+            inGameInfo[{myHand, value}].GetPossibleSuits().remove({ Suit::Spades, Suit::Clubs, Suit::Hearts });
+            break;
+
+        case CardColor::Black:
+            UpdateInfoColor(myHand, value, CardColor::Black, true);
+            inGameInfo[{myHand, value}].GetPossibleSuits().remove({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
+            inGameInfo[{myHand, value}].GetPossibleSuits().remove({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
+            break;
+
+        default:
+            break;
         }
-        if (possibleValues.empty())
+    }
+
+    if (!suits.empty())
+    {
+        RemoveOrConfirmSuits(myHand, value, suits, true);
+    }
+}
+
+bool AIMind::GuessTry(Hand* leftHand, Hand* rightHand, Hand* myHand, Value& valueForSwap)
+{
+    // 1. Устанавливаем приватную информацию о картах всех рук
+    SetPrivateInfo(leftHand, rightHand, myHand);
+    CheckForPriority(); // Проверяем приоритетные карты для угадывания
+
+    // 2. Выбираем руку для угадывания
+    Hand* chosenHand = ChooseHand(leftHand, rightHand);
+    chosenHand->ChoosedForQuestions(); // Помечаем выбранную руку
+    Hand* notChosenHand = (chosenHand == leftHand) ? rightHand : leftHand;
+
+    // 3. Угадываем значение карты
+    Value guessingValue = GuessValue(chosenHand);
+    myHand->AddReplica(valueToString(guessingValue)); // Добавляем текстовое представление в диалог
+
+    // 4. Проверка наличия карты с этим значением у выбранной руки
+    if (!chosenHand->CheckCards(guessingValue))
+    {
+        AddYesNoReplica(chosenHand, false); // Добавляем "нет" в диалог
+        SetCurrentInfo({ notChosenHand, guessingValue }, leftHand, rightHand, myHand);
+        return false; // Угадывание неудачно
+    }
+    AddYesNoReplica(chosenHand, true); // Добавляем "да" в диалог
+    SetCurrentInfo({ chosenHand, guessingValue }, leftHand, rightHand, myHand);
+
+    // 5. Угадываем количество карт с этим значением
+    int guessingNum = GuessNum();
+    myHand->AddReplica(std::to_string(guessingNum)); // Добавляем количество в диалог
+
+    // 6. Проверка количества
+    if (!chosenHand->CheckCards(guessingValue, guessingNum))
+    {
+        AddYesNoReplica(chosenHand, false);
+        UpdateInfoNum(chosenHand, guessingValue, guessingNum, false); // Обновляем внутреннюю информацию
+        return false;
+    }
+    AddYesNoReplica(chosenHand, true);
+    UpdateInfoNum(chosenHand, guessingValue, guessingNum, true);
+    SetCurrentInfo({ chosenHand, guessingValue }, leftHand, rightHand, myHand);
+
+    // 7. Если количество маленькое (1 или 2), угадываем цвет карты
+    if (guessingNum == 1 || guessingNum == 2)
+    {
+        CardColor guessingColor = GuessColor(guessingNum);
+        myHand->AddReplica(cardColorToString(guessingColor));
+
+        // Проверка цвета
+        if (!chosenHand->CheckCards(guessingValue, guessingNum, guessingColor))
         {
-            for (const auto& info : privateInfo)
+            AddYesNoReplica(chosenHand, false);
+            UpdateInfoColor(chosenHand, guessingValue, guessingColor, false);
+            return false;
+        }
+        AddYesNoReplica(chosenHand, true);
+
+        // Если две карты и цвет не смешанный — можно менять карты
+        if (guessingNum == 2 && guessingColor != CardColor::Mixed)
+        {
+            valueForSwap = guessingValue;
+            inGameInfo.erase({ chosenHand, guessingValue });
+
+            // Обработка случая, когда все карты с этим значением ещё не собраны
+            if (myHand->GetCards().count(guessingValue) + guessingNum != 4)
             {
-                if (info.first.first == owner)
-                {
-                    if (std::ranges::find(outGameValue, info.first.second) == outGameValue.end()) 
-                    {
-                        possibleValues.push_back(info.first.second); 
-                    }
-                }
+                ProcessNotFourCase(myHand, notChosenHand, guessingValue, guessingNum, guessingColor, {});
+                UpdateInfoNum(myHand, guessingValue, 1, false);
             }
+            return true;
         }
 
+        // Обновляем информацию о цвете
+        UpdateInfoColor(chosenHand, guessingValue, guessingColor, true);
+        SetCurrentInfo({ chosenHand, guessingValue }, leftHand, rightHand, myHand);
+
+        // 8. Угадываем масти карт
+        std::list<Suit> guessingSuits = GuessSuits();
+        myHand->AddReplica(suitsToString(guessingSuits));
+
+        if (!chosenHand->CheckCards(guessingValue, guessingSuits))
+        {
+            AddYesNoReplica(chosenHand, false);
+            RemoveOrConfirmSuits(chosenHand, guessingValue, guessingSuits, false);
+            return false;
+        }
+
+        AddYesNoReplica(chosenHand, true);
+        valueForSwap = guessingValue;
+        inGameInfo.erase({ chosenHand, guessingValue });
+
+        // Обработка частичного количества карт
+        if (myHand->GetCards().count(guessingValue) + guessingNum != 4)
+        {
+            ProcessNotFourCase(myHand, notChosenHand, guessingValue, guessingNum, guessingColor, guessingSuits);
+            if (guessingNum == 2)
+                UpdateInfoNum(myHand, guessingValue, 1, false);
+        }
+        return true;
+    }
+
+    // 9. Если количество больше 2 — сразу угадываем масти
+    std::list<Suit> guessingSuits = GuessSuits();
+    myHand->AddReplica(suitsToString(guessingSuits));
+
+    if (!chosenHand->CheckCards(guessingValue, guessingSuits))
+    {
+        AddYesNoReplica(chosenHand, false);
+        RemoveOrConfirmSuits(chosenHand, guessingValue, guessingSuits, false);
+        return false;
+    }
+
+    AddYesNoReplica(chosenHand, true);
+    valueForSwap = guessingValue;
+    inGameInfo.erase({ chosenHand, guessingValue });
+
+    // 10. Обновляем информацию о частичных картах для других рук
+    if (myHand->GetCards().count(guessingValue) + guessingNum != 4)
+    {
+        inGameInfo[{notChosenHand, guessingValue}].SetPriority();
+        inGameInfo[{notChosenHand, guessingValue}].ConfirmPossibleNum(1);
+        UpdateInfoNum(myHand, guessingValue, 3, true);
+        RemoveOrConfirmSuits(myHand, guessingValue, guessingSuits, true);
+    }
+
+    return true;
+}
+
+Hand* AIMind::ChooseHand(Hand* leftHand, Hand* rightHand)
+{
+    // Если одна из рук пуста — выбираем другую
+    if (leftHand->GetCards().empty()) return rightHand;
+    if (rightHand->GetCards().empty()) return leftHand;
+
+    std::set<Hand*> candidates;
+
+    // Добавляем руки с приоритетом
+    for (auto& [key, info] : privateInfo)
+    {
+        if (info.IsPriority())
+        {
+            if (key.first == leftHand) candidates.insert(leftHand);
+            else if (key.first == rightHand) candidates.insert(rightHand);
+        }
+    }
+
+    // Если нет приоритетных — обе в кандидаты
+    if (candidates.empty())
+    {
+        candidates.insert(leftHand);
+        candidates.insert(rightHand);
+    }
+
+    // Случайный выбор из кандидатов
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distrib(0, static_cast<int>(candidates.size()) - 1);
+
+    auto it = candidates.begin();
+    std::advance(it, distrib(gen));
+
+    return *it;
+}
+
+Value AIMind::GuessValue(Hand* owner)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::vector<Value> possibleValues;
+
+    // Сначала приоритетные
+    for (const auto& [key, info] : privateInfo)
+    {
+        if (info.IsPriority() && key.first == owner &&
+            std::ranges::find(outGameValue, key.second) == outGameValue.end())
+        {
+            possibleValues.push_back(key.second);
+        }
+    }
+
+    // Если приоритетных нет — все доступные
+    if (possibleValues.empty())
+    {
+        for (const auto& [key, info] : privateInfo)
+        {
+            if (key.first == owner &&
+                std::ranges::find(outGameValue, key.second) == outGameValue.end())
+            {
+                possibleValues.push_back(key.second);
+            }
+        }
     }
 
     if (!possibleValues.empty())
     {
-        std::uniform_int_distribution<int> distrib(0, (int)possibleValues.size() - 1);
-        int randomIndex = distrib(gen);
-
-        return possibleValues[randomIndex];
+        return random_choice(possibleValues, gen);
     }
-    else
+
+    // Иначе — любые значения, кроме вышедших из игры
+    for (Value val = Value::A; val <= Value::K;
+        val = static_cast<Value>(static_cast<int>(val) + 1))
     {
-        for (Value val = Value::A; val <= Value::K; val = static_cast<Value>(static_cast<int>(val) + 1)) {
-            bool isInOutGameInfo = false;
-            for (const auto& outValue : outGameValue) {
-                if (outValue == val) {
-                    isInOutGameInfo = true;
-                    break;
-                }
-            }
-            if (!isInOutGameInfo) {
-                possibleValues.push_back(val);
-            }
+        if (std::ranges::find(outGameValue, val) == outGameValue.end())
+        {
+            possibleValues.push_back(val);
         }
-
-        std::uniform_int_distribution<int> distrib(0, (int)possibleValues.size() - 1);
-        int randomIndex = distrib(gen);
-
-        return possibleValues[randomIndex];
     }
+
+    return random_choice(possibleValues, gen);
 }
 
 void AIMind::SetCurrentInfo(std::pair<Hand*, Value> key, Hand* leftHand, Hand* rightHand, Hand* myHand)
 {
-    auto it = inGameInfo.find(key);
-   
-    if (it == inGameInfo.end()) {
-        
+    // Если нет записи — создаём
+    if (!inGameInfo.contains(key))
+    {
         inGameInfo[key] = KnownInfo();
     }
+
     SetPrivateInfo(leftHand, rightHand, myHand);
-    
-    currentInfo = &privateInfo.find(key)->second;
-} 
+
+    auto it = privateInfo.find(key);
+    currentInfo = (it != privateInfo.end()) ? &it->second : nullptr;
+}
 
 int AIMind::GuessNum()
 {
     std::random_device rd;
     std::mt19937 gen(rd());
 
-   
-    if (currentInfo->GetPossibleNum().size() != 0) {
-       
-        std::vector<int> allPossibleNums;
-        for (const auto& numsInfo : currentInfo->GetPossibleNum()) {
-            allPossibleNums.push_back(numsInfo);
-        }
-
-        
-        std::uniform_int_distribution<int> distrib(0, (int)allPossibleNums.size() - 1);
-        int randomIndex = distrib(gen);
-
-       
-        return allPossibleNums[randomIndex];
+    const auto& possibleNums = currentInfo->GetPossibleNum();
+    if (!possibleNums.empty())
+    {
+        return random_choice(possibleNums, gen);
     }
-    else {
-       
-        std::uniform_int_distribution<int> distrib(1, 3);
-        int randomIndex = distrib(gen);
 
-       
-        return randomIndex;
-    }
+    // Если данных нет — случайно от 1 до 3
+    std::uniform_int_distribution<int> distrib(1, 3);
+    return distrib(gen);
 }
 
-std::string AIMind::GuessColor(int numCards)
+CardColor AIMind::GuessColor(int numCards)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::vector<std::string> allPossibleColors;
 
-    if (currentInfo->GetPossibleColors().size() != 0) {
-      
-
-        for (const auto& colorsInfo : currentInfo->GetPossibleColors()) {
-            allPossibleColors.push_back(colorsInfo);
-        }
-
-      
-        std::uniform_int_distribution<int> distrib(0, (int)allPossibleColors.size() - 1);
-        int randomIndex = distrib(gen);
-
-       
-        return allPossibleColors[randomIndex];
+    const auto& possibleColors = currentInfo->GetPossibleColors();
+    if (!possibleColors.empty())
+    {
+        return random_choice(possibleColors, gen);
     }
-    else {
-       
-        int variants = 2;
-        if (numCards == 2) { variants = 3; }
-        std::uniform_int_distribution<int> distrib(1, variants);
-        int randomIndex = distrib(gen);
 
-        if (randomIndex == 1)
-        {
-            return std::string("Red");
+    // Если нет информации — выбираем из вариантов
+    std::vector<CardColor> fallbackColors = { CardColor::Red, CardColor::Black };
+    if (numCards == 2) fallbackColors.push_back(CardColor::Mixed);
 
-        }
-        else if (randomIndex == 2)
-        {
-			return std::string("Black");
-        }
-        else
-        {
-			return std::string("Mixed");
-        }
-    }
+    return random_choice(fallbackColors, gen);
 }
 
 std::list<Suit> AIMind::GuessSuits()
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::vector<std::list <Suit>> allPossibleSuits;
-    for (const auto& suitInfo : currentInfo->GetPossibleSuits())
+
+    const auto& possibleSuits = currentInfo->GetPossibleSuits();
+    if (possibleSuits.empty())
     {
-        allPossibleSuits.push_back(suitInfo);
+        return {};
     }
 
-    std::uniform_int_distribution<int> distrib(0, (int)allPossibleSuits.size() - 1);
-    int randomIndex = distrib(gen);
-
-    return allPossibleSuits[randomIndex];
+    return random_choice(possibleSuits, gen);
 }
 
 void AIMind::LearnOutGameInfo(Value value)
@@ -430,15 +429,117 @@ std::string AIMind::suitsToString(const std::list<Suit>& suits)
     return result;
 }
 
+std::string AIMind::cardColorToString(CardColor color)
+{
+    switch (color) {
+    case CardColor::Red:   return "Red";
+    case CardColor::Black: return "Black";
+    case CardColor::Mixed: return "Mixed";
+    default:               return "Unknown";
+    }
+}
+
 void AIMind::CheckForPriority()
 {
-    for (auto& info : privateInfo)
+    for (auto& [key, info] : privateInfo)
     {
-		if ((info.second.GetPossibleSuits().size() == 1) || 
-            (info.second.GetPossibleNum().size() == 1 && *info.second.GetPossibleNum().begin() == 2 
-            && info.second.GetPossibleColors().size() == 1 && *info.second.GetPossibleColors().begin() != "Mixed"))
+        const auto& possibleSuits = info.GetPossibleSuits();
+        const auto& possibleNums = info.GetPossibleNum();
+        const auto& possibleColors = info.GetPossibleColors();
+
+        bool singleSuit = (possibleSuits.size() == 1);
+
+        bool hasExactlyTwoCards = (possibleNums.size() == 1 && *possibleNums.begin() == 2);
+
+        bool singleColorAndNotMixed = (possibleColors.size() == 1 && *possibleColors.begin() != CardColor::Mixed);
+
+        if (singleSuit || (hasExactlyTwoCards && singleColorAndNotMixed))
         {
-            info.second.SetPriority();
+            info.SetPriority();
+        }
+    }
+}
+
+void AIMind::UpdatePrivateInfoForHand(Hand* hand, Hand* otherHand, Hand* myHand, Value v, 
+                                      int blackNum, int redNum, const std::list<Suit>& mySuits)
+{
+    std::pair<Hand*, Value> key_hand = { hand, v };
+    std::pair<Hand*, Value> key_other = { otherHand, v };
+
+    auto it_hand = privateInfo.find(key_hand);
+    auto it_other = privateInfo.find(key_other);
+
+    if (it_hand == privateInfo.end()) return;
+
+    privateInfo[key_hand].RemovePossibleSuits(mySuits);
+
+    if (static_cast<int>(hand->GetCards().size()) < 3)
+        privateInfo[key_hand].RemovePossibleNum(3);
+
+    if (static_cast<int>(hand->GetCards().size()) < 2)
+        privateInfo[key_hand].RemovePossibleNum(2);
+
+
+    int myCount = static_cast<int>(myHand->GetCards().count(v));
+
+    if (myCount == 1)
+    {
+        if (it_other != privateInfo.end())
+        {
+            privateInfo[key_hand].RemovePossibleNum(3);
+
+            if (privateInfo[key_other].GetPossibleNum().size() == 1 &&
+                *privateInfo[key_other].GetPossibleNum().begin() == 2)
+            {
+                privateInfo[key_hand].RemovePossibleNum(2);
+            }
+
+            if (privateInfo[key_other].GetPossibleColors().size() == 1 &&
+                *privateInfo[key_other].GetPossibleColors().begin() != CardColor::Mixed)
+            {
+                privateInfo[key_hand].RemovePossibleColors(*privateInfo[key_other].GetPossibleColors().begin());
+            }
+        }
+    }
+    else if (myCount == 2)
+    {
+        privateInfo[key_hand].RemovePossibleNum(3);
+        if (it_other != privateInfo.end())
+        {
+            privateInfo[key_hand].RemovePossibleNum(2);
+        }
+
+        if (blackNum == 0 && redNum == 2)
+        {
+            privateInfo[key_hand].ConfirmPossibleColors(CardColor::Black);
+        }
+        else if (blackNum == 2 && redNum == 0)
+        {
+            privateInfo[key_hand].ConfirmPossibleColors(CardColor::Red);
+        }
+        else if (blackNum == 1 && redNum == 1)
+        {
+            if (privateInfo[key_hand].GetPossibleNum().size() == 1 &&
+                *privateInfo[key_hand].GetPossibleNum().begin() == 2)
+            {
+                privateInfo[key_hand].ConfirmPossibleColors(CardColor::Mixed);
+            }
+            else if (it_other != privateInfo.end() && privateInfo[key_other].GetPossibleColors().size() == 1)
+            {
+                privateInfo[key_hand].RemovePossibleColors(*privateInfo[key_other].GetPossibleColors().begin());
+            }
+        }
+    }
+    else if (myCount == 3)
+    {
+        privateInfo[key_hand].ConfirmPossibleNum(1);
+        if (blackNum == 2)
+        {
+            privateInfo[key_hand].ConfirmPossibleColors(CardColor::Red);
+        }
+        else if (redNum == 2)
+        {
+            privateInfo[key_hand].ConfirmPossibleColors(CardColor::Black);
         }
     }
 }
@@ -447,198 +548,83 @@ void AIMind::SetPrivateInfo(Hand* leftHand, Hand* rightHand, Hand* myHand)
 {
     privateInfo = inGameInfo;
     std::set<Value> myValues;
-    for (auto& card : myHand->GetCards())
+
+    for (const auto& card : myHand->GetCards())
     {
         myValues.insert(card.first);
     }
-    for (auto& v : myValues)
+
+    for (const auto& v : myValues)
     {
         int blackNum = 0;
         int redNum = 0;
-        std::list <Suit> mySuits;
+        std::list<Suit> mySuits;
+
         auto range = myHand->GetCards().equal_range(v);
-        for (auto& it = range.first; it != range.second; ++it)
+        for (auto it = range.first; it != range.second; ++it)
         {
             mySuits.push_back(it->second.GetSuit());
+
             if (it->second.GetSuit() == Suit::Clubs || it->second.GetSuit() == Suit::Spades)
-            {
                 ++blackNum;
-            }
             else
-            {
                 ++redNum;
-            };
         }
-        std::pair<Hand*, Value> key_l = std::make_pair(leftHand, v);
-        std::pair<Hand*, Value> key_r = std::make_pair(rightHand, v);
-        auto it_l = privateInfo.find(key_l); 
-        auto it_r = privateInfo.find(key_r); 
-        if (it_l != privateInfo.end()) 
-        {
-            privateInfo[key_l].RemovePossibleSuits(mySuits);
-            if (leftHand->GetCards().size() < 3) { privateInfo[key_l].RemovePossibleNum(3); }
-            if (leftHand->GetCards().size() < 2) { privateInfo[key_l].RemovePossibleNum(2); }
-            if (myHand->GetCards().count(v) == 1)
-            {
-                if (it_r != privateInfo.end())
-                {
-                    privateInfo[key_l].RemovePossibleNum(3);
-                    if (privateInfo[key_r].GetPossibleNum().size() == 1 && *privateInfo[key_r].GetPossibleNum().begin() == 2)
-                    {
-                        privateInfo[key_l].RemovePossibleNum(2);
-                    }
-                    if (privateInfo[key_r].GetPossibleColors().size() == 1 && *privateInfo[key_r].GetPossibleColors().begin() != "Mixed")
-                    {
-                        privateInfo[key_l].RemovePossibleColors(*privateInfo[key_r].GetPossibleColors().begin());
-                    }
-                }
-            }
-            else if (myHand->GetCards().count(v) == 2)
-            {
-                privateInfo[key_l].RemovePossibleNum(3);
-                if (it_r != privateInfo.end()) { privateInfo[key_l].RemovePossibleNum(2); }
-                if (blackNum == 0 && redNum == 2)
-                {
-                    privateInfo[key_l].ConfirmPossibleColors("Black");
-                }
-                else if (blackNum == 2 && redNum == 0)
-                {
-                    privateInfo[key_l].ConfirmPossibleColors("Red");
-                }
-                else if (blackNum == 1 && redNum == 1)
-                {
-                    if (privateInfo[key_l].GetPossibleNum().size() == 1 && *privateInfo[key_l].GetPossibleNum().begin() == 2)
-                    {
-                        privateInfo[key_l].ConfirmPossibleColors("Mixed");
-                    }
-                    else if (it_r != privateInfo.end() && privateInfo[key_r].GetPossibleColors().size() == 1)
-                    {
-                        privateInfo[key_l].RemovePossibleColors(*privateInfo[key_r].GetPossibleColors().begin());
-                    }
-                }
 
-            }
-            else if (myHand->GetCards().count(v) == 3)
-            {
-                privateInfo[key_l].ConfirmPossibleNum(1);
-                if (blackNum == 2) { privateInfo[key_l].ConfirmPossibleColors("Red"); }
-                else if (redNum == 2) { privateInfo[key_l].ConfirmPossibleColors("Black"); }
-            }
-        }
-        if (it_r != privateInfo.end()) 
-        {
-            privateInfo[key_r].RemovePossibleSuits(mySuits);
-            if (rightHand->GetCards().size() < 3) { privateInfo[key_r].RemovePossibleNum(3); } 
-            if (rightHand->GetCards().size() < 2) { privateInfo[key_r].RemovePossibleNum(2); } 
-            if (myHand->GetCards().count(v) == 1)
-            {
-                if (it_l != privateInfo.end())
-                {
-                    privateInfo[key_r].RemovePossibleNum(3);
-                    if (privateInfo[key_l].GetPossibleNum().size() == 1 && *privateInfo[key_l].GetPossibleNum().begin() == 2)
-                    {
-                        privateInfo[key_r].RemovePossibleNum(2);
-                    }
-                    if (privateInfo[key_l].GetPossibleColors().size() == 1 && *privateInfo[key_l].GetPossibleColors().begin() != "Mixed")
-                    {
-                        privateInfo[key_r].RemovePossibleColors(*privateInfo[key_l].GetPossibleColors().begin());
-                    }
-                }
-            }
-            else if (myHand->GetCards().count(v) == 2)
-            {
-                privateInfo[key_r].RemovePossibleNum(3);
-                if (it_l != privateInfo.end()) { privateInfo[key_r].RemovePossibleNum(2); }
-                if (blackNum == 0 && redNum == 2)
-                {
-                    privateInfo[key_r].ConfirmPossibleColors("Black");
-                }
-                else if (blackNum == 2 && redNum == 0)
-                {
-                    privateInfo[key_r].ConfirmPossibleColors("Red");
-                }
-                else if (blackNum == 1 && redNum == 1)
-                {
-                    if (privateInfo[key_r].GetPossibleNum().size() == 1 && *privateInfo[key_r].GetPossibleNum().begin() == 2)
-                    {
-                        privateInfo[key_r].ConfirmPossibleColors("Mixed");
-                    }
-                    else if (it_l != privateInfo.end() && privateInfo[key_l].GetPossibleColors().size() == 1)
-                    {
-                        privateInfo[key_r].RemovePossibleColors(*privateInfo[key_l].GetPossibleColors().begin());
-                    }
-                }
-
-            }
-            else if (myHand->GetCards().count(v) == 3)
-            {
-                privateInfo[key_r].ConfirmPossibleNum(1);
-                if (blackNum == 2) { privateInfo[key_r].ConfirmPossibleColors("Red"); }
-                else if (redNum == 2) { privateInfo[key_r].ConfirmPossibleColors("Black"); }
-            }
-
-        }          
-
+        UpdatePrivateInfoForHand(leftHand, rightHand, myHand, v, blackNum, redNum, mySuits);
+        UpdatePrivateInfoForHand(rightHand, leftHand, myHand, v, blackNum, redNum, mySuits);
     }
 }
 
-KnownInfo::KnownInfo(std::list<int> possibleNums) : possibleNum(possibleNums)
+KnownInfo::KnownInfo(const std::set<int>& possibleNums) : possibleNum(possibleNums), priority(false)
 {
-    priority = false;
-    if (std::ranges::find(possibleNum, 1)!= possibleNum.end())
+    if (possibleNum.count(1))
     {
-		possibleColors.push_back("Black");
-		possibleColors.push_back("Red");
+        possibleColors.insert(CardColor::Black);
+        possibleColors.insert(CardColor::Red);
         possibleSuits.push_back({ Suit::Spades });
-		possibleSuits.push_back({ Suit::Clubs });
-		possibleSuits.push_back({ Suit::Diamonds }); 
-		possibleSuits.push_back({ Suit::Hearts }); 
+        possibleSuits.push_back({ Suit::Clubs });
+        possibleSuits.push_back({ Suit::Diamonds });
+        possibleSuits.push_back({ Suit::Hearts });
     }
-    else if (std::ranges::find(possibleNum, 2) != possibleNum.end())
+    else if (possibleNum.count(2))
     {
-        possibleColors.push_back("Black");
-        possibleColors.push_back("Red");
-		possibleColors.push_back("Mixed");
+        possibleColors.insert(CardColor::Black);
+        possibleColors.insert(CardColor::Red);
+        possibleColors.insert(CardColor::Mixed);
         possibleSuits.push_back({ Suit::Spades, Suit::Diamonds });
         possibleSuits.push_back({ Suit::Spades, Suit::Hearts });
-		possibleSuits.push_back({ Suit::Clubs, Suit::Diamonds });
-		possibleSuits.push_back({ Suit::Clubs, Suit::Hearts });
+        possibleSuits.push_back({ Suit::Clubs, Suit::Diamonds });
+        possibleSuits.push_back({ Suit::Clubs, Suit::Hearts });
     }
-    else if (std::ranges::find(possibleNum, 3) != possibleNum.end())
+    else if (possibleNum.count(3))
     {
         possibleSuits.push_back({ Suit::Spades, Suit::Clubs, Suit::Diamonds });
         possibleSuits.push_back({ Suit::Spades, Suit::Clubs, Suit::Hearts });
-		possibleSuits.push_back({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
-		possibleSuits.push_back({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
+        possibleSuits.push_back({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
+        possibleSuits.push_back({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
     }
 }
 
 KnownInfo::KnownInfo()
+    : priority(false)
 {
-    priority = false;
-	possibleNum.push_back(1);
-	possibleNum.push_back(2);
-	possibleNum.push_back(3);
-    possibleColors.push_back("Black");
-    possibleColors.push_back("Red");
-    possibleColors.push_back("Mixed");
-    possibleSuits.push_back({ Suit::Spades });
-    possibleSuits.push_back({ Suit::Clubs });
-    possibleSuits.push_back({ Suit::Diamonds });
-    possibleSuits.push_back({ Suit::Hearts });
-    possibleSuits.push_back({ Suit::Spades, Suit::Diamonds });
-    possibleSuits.push_back({ Suit::Spades, Suit::Hearts });
-    possibleSuits.push_back({ Suit::Clubs, Suit::Diamonds });
-    possibleSuits.push_back({ Suit::Clubs, Suit::Hearts });
-    possibleSuits.push_back({ Suit::Spades, Suit::Clubs, Suit::Diamonds });
-    possibleSuits.push_back({ Suit::Spades, Suit::Clubs, Suit::Hearts });
-    possibleSuits.push_back({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
-    possibleSuits.push_back({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
+    possibleNum = { 1, 2, 3 };
+    possibleColors = { CardColor::Black, CardColor::Red, CardColor::Mixed };
+
+    possibleSuits = {
+        {Suit::Spades}, {Suit::Clubs}, {Suit::Diamonds}, {Suit::Hearts},
+        {Suit::Spades, Suit::Diamonds}, {Suit::Spades, Suit::Hearts},
+        {Suit::Clubs, Suit::Diamonds}, {Suit::Clubs, Suit::Hearts},
+        {Suit::Spades, Suit::Clubs, Suit::Diamonds}, {Suit::Spades, Suit::Clubs, Suit::Hearts},
+        {Suit::Spades, Suit::Diamonds, Suit::Hearts}, {Suit::Clubs, Suit::Diamonds, Suit::Hearts}
+    };
 }
 
 void KnownInfo::RemovePossibleNum(int num)
 {
-    possibleNum.remove(num);
+    possibleNum.erase(num);
+
     if (num == 1)
     {
         possibleSuits.remove({ Suit::Spades });
@@ -646,9 +632,9 @@ void KnownInfo::RemovePossibleNum(int num)
         possibleSuits.remove({ Suit::Diamonds });
         possibleSuits.remove({ Suit::Hearts });
     }
-    else  if (num == 2)
+    else if (num == 2)
     {
-        RemovePossibleColors("Mixed");
+        RemovePossibleColors(CardColor::Mixed);
     }
     else if (num == 3)
     {
@@ -657,21 +643,21 @@ void KnownInfo::RemovePossibleNum(int num)
         possibleSuits.remove({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
         possibleSuits.remove({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
     }
-
 }
 
 void KnownInfo::ConfirmPossibleNum(int num)
 {
     possibleNum.clear();
-    possibleNum.push_back(num);
+    possibleNum.insert(num);
+
     if (num == 1)
     {
-		RemovePossibleColors("Mixed");
+        RemovePossibleColors(CardColor::Mixed);
         possibleSuits.remove({ Suit::Spades, Suit::Clubs, Suit::Diamonds });
         possibleSuits.remove({ Suit::Spades, Suit::Clubs, Suit::Hearts });
         possibleSuits.remove({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
         possibleSuits.remove({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
-	} 
+    }
     else if (num == 2)
     {
         possibleSuits.remove({ Suit::Spades });
@@ -682,90 +668,95 @@ void KnownInfo::ConfirmPossibleNum(int num)
         possibleSuits.remove({ Suit::Spades, Suit::Clubs, Suit::Hearts });
         possibleSuits.remove({ Suit::Spades, Suit::Diamonds, Suit::Hearts });
         possibleSuits.remove({ Suit::Clubs, Suit::Diamonds, Suit::Hearts });
-       
     }
     else if (num == 3)
     {
-        RemovePossibleColors("Mixed");
-        RemovePossibleColors("Red");
-        RemovePossibleColors("Black");
+        RemovePossibleColors(CardColor::Mixed);
+        RemovePossibleColors(CardColor::Red);
+        RemovePossibleColors(CardColor::Black);
     }
 }
 
-void KnownInfo::RemovePossibleColors(std::string color)
+void KnownInfo::RemovePossibleColors(const CardColor& color)
 {
-    possibleColors.remove(color);
-    if (color == "Mixed")
+    possibleColors.erase(color);
+
+    if (color == CardColor::Mixed)
     {
         possibleSuits.remove({ Suit::Spades, Suit::Diamonds });
         possibleSuits.remove({ Suit::Spades, Suit::Hearts });
         possibleSuits.remove({ Suit::Clubs, Suit::Diamonds });
         possibleSuits.remove({ Suit::Clubs, Suit::Hearts });
     }
-    else if (color == "Black")
+    else if (color == CardColor::Black)
     {
         possibleSuits.remove({ Suit::Spades });
         possibleSuits.remove({ Suit::Clubs });
     }
-    else if (color == "Red")
+    else if (color == CardColor::Red)
     {
         possibleSuits.remove({ Suit::Diamonds });
         possibleSuits.remove({ Suit::Hearts });
     }
 }
 
-void KnownInfo::ConfirmPossibleColors(std::string color)
+void KnownInfo::ConfirmPossibleColors(const CardColor& color)
 {
     possibleColors.clear();
-    possibleColors.push_back(color);
-    if (color == "Black")
+    possibleColors.insert(color);
+
+    if (color == CardColor::Black)
     {
         possibleSuits.remove({ Suit::Diamonds });
         possibleSuits.remove({ Suit::Hearts });
     }
-    else if (color == "Red")
+    else if (color == CardColor::Red)
     {
         possibleSuits.remove({ Suit::Spades });
-        possibleSuits.remove({ Suit::Clubs }); 
+        possibleSuits.remove({ Suit::Clubs });
     }
 }
 
-void KnownInfo::RemovePossibleSuits(std::list<Suit> suit)
+void KnownInfo::RemovePossibleSuits(const std::list<Suit>& suit)
 {
     std::list<std::list<Suit>> suitsToRemove;
-    for (auto& s : suit)
+
+    for (const auto& possibleS : possibleSuits)
     {
-        for (std::list<Suit> possibleS : possibleSuits)
+        for (const auto& s : suit)
         {
-            if (std::ranges::find(possibleS, s) != possibleS.end())
+            if (std::find(possibleS.begin(), possibleS.end(), s) != possibleS.end())
             {
                 suitsToRemove.push_back(possibleS);
+                break;
             }
         }
-    }       
-  
-    for (auto& rem_s : suitsToRemove)
+    }
+
+    for (const auto& rem_s : suitsToRemove)
     {
         possibleSuits.remove(rem_s);
     }
 }
 
-void KnownInfo::ConfirmPossibleSuits(std::list<Suit> suit)
+void KnownInfo::ConfirmPossibleSuits(const std::list<Suit>& suit)
 {
-    std::list<std::list<Suit>> suitsToRemove; 
-    for (auto& s : suit) 
+    std::list<std::list<Suit>> suitsToRemove;
+
+    for (const auto& possibleS : possibleSuits)
     {
-        for (std::list<Suit> possibleS : possibleSuits) 
+        for (const auto& s : suit)
         {
-            if (std::ranges::find(possibleS, s) == possibleS.end())
+            if (std::find(possibleS.begin(), possibleS.end(), s) == possibleS.end())
             {
-                suitsToRemove.push_back(possibleS); 
+                suitsToRemove.push_back(possibleS);
+                break;
             }
         }
     }
 
-    for (auto& rem_s : suitsToRemove)
+    for (const auto& rem_s : suitsToRemove)
     {
-        possibleSuits.remove(rem_s); 
+        possibleSuits.remove(rem_s);
     }
 }

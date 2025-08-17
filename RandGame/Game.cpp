@@ -7,27 +7,43 @@
 #include <random>
 
 
-Game::Game() : gameState(GameStateType::PlayerTurn), playerHand(0), kingSlayerHand(1), higherMindHand(2)
+Game::Game()
+	: gameState(GameStateType::PlayerTurn),
+	playerHand(0),
+	kingSlayerHand(1),
+	higherMindHand(2)
 {
-	hands.push_back(&playerHand);   
-	hands.push_back(&kingSlayerHand);  
+	hands.push_back(&playerHand);
+	hands.push_back(&kingSlayerHand);
 	hands.push_back(&higherMindHand);
-		
-	std::vector <Card> cardsDeck;
+
+	InitDeck();
+	DealCards();
+
+	background.setSize(sf::Vector2f(1000, 1000));
+	background.setFillColor(sf::Color::Cyan);
+	background.setPosition(0.f, 0.f);
+}
+
+void Game::InitDeck()
+{
+	cardsDeck.clear();
 
 	for (int i = 0; i < 4; ++i)
 	{
 		for (int j = 0; j < 9; ++j)
 		{
-			Card card(i, j);
-			cardsDeck.push_back(card);
-			
+			cardsDeck.emplace_back(i, j);
 		}
 	}
-	std::random_device rd; 
-	std::mt19937 g(rd()); 
-	std::shuffle(cardsDeck.begin(), cardsDeck.end(), g);
 
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(cardsDeck.begin(), cardsDeck.end(), g);
+}
+
+void Game::DealCards()
+{
 	for (auto& currentHand : hands)
 	{
 		for (int i = 0; i < 12; ++i)
@@ -35,17 +51,9 @@ Game::Game() : gameState(GameStateType::PlayerTurn), playerHand(0), kingSlayerHa
 			currentHand->AddCard(cardsDeck.back());
 			cardsDeck.pop_back();
 		}
-		currentHand->CheckFours(); 
+		currentHand->CheckFours();
 	}
-
-
-	background.setSize(sf::Vector2f(1000, 1000));
-	background.setFillColor(sf::Color::Cyan);
-	background.setPosition(0.f, 0.f);
-
 }
-
-
 
 void Game::HandleWindowEvents(sf::RenderWindow& window)
 {
@@ -93,46 +101,32 @@ void Game::HandleWindowEvents(sf::RenderWindow& window)
 	
 }
 
+void Game::HandleAITurn(AIHand& aiHand, Hand& opponent1, Hand& opponent2, Value& value) {
+	currentAIHand = &aiHand;
+	guessCorrect = aiHand.GetMind().GuessTry(&opponent1, &opponent2, &aiHand, value);
+	targetHand = WithWhomSwap();
+
+	if (!guessCorrect) {
+		targetHand->NotChoosedForQuestions();
+	}
+
+	dialogSize = aiHand.GetDialog().size();
+	currentDialogIndex = 0;
+	TurnShowDialog();
+}
+
 bool Game::Update(float timeDelta)
 {
 	switch (gameState)
 	{
 	case GameStateType::KingSlayerTurn:
-		currentAIHand = &kingSlayerHand;
-		isRight = currentAIHand->GetMind().GuessTry(hands[2], hands[0], hands[1], valueForSwap);
-		targetHand = WithWhomSwap();
-		if (isRight)
-		{
-			dialogSize = currentAIHand->GetDialog().size(); 
-			currentDialogIndex = 0; 
-			TurnShowDialog(); 
-		}
-		else
-		{
-			WithWhomSwap()->NotChoosedForQuestions();
-			dialogSize = currentAIHand->GetDialog().size(); 
-			currentDialogIndex = 0;
-			TurnShowDialog();
-		}
-		break;	
-	case GameStateType::HigherMindTurn:
-		currentAIHand = &higherMindHand;
-		isRight = currentAIHand->GetMind().GuessTry(hands[0], hands[1], hands[2], valueForSwap);
-		targetHand = WithWhomSwap();
-		if (isRight)
-		{ 
-			dialogSize = currentAIHand->GetDialog().size(); 
-			currentDialogIndex = 0; 
-			TurnShowDialog(); 
-		}
-		else
-		{
-			WithWhomSwap()->NotChoosedForQuestions(); 
-			dialogSize = currentAIHand->GetDialog().size(); 
-			currentDialogIndex = 0;
-			TurnShowDialog(); 
-		} 
+		HandleAITurn(kingSlayerHand, *hands[2], *hands[0], valueForSwap);
 		break;
+
+	case GameStateType::HigherMindTurn:
+		HandleAITurn(higherMindHand, *hands[0], *hands[1], valueForSwap);
+		break;
+
 	case GameStateType::ShowDialog:
 		if (timeForDelay > delay)
 		{
@@ -144,7 +138,7 @@ bool Game::Update(float timeDelta)
 
 				if (currentAIHand == &kingSlayerHand)
 				{
-					if (isRight)
+					if (guessCorrect)
 					{
 						SwapCards(kingSlayerHand, valueForSwap);
 						SetKingSlayerTurn();
@@ -156,7 +150,7 @@ bool Game::Update(float timeDelta)
 				}
 				else if (currentAIHand == &higherMindHand)
 				{
-					if (isRight)
+					if (guessCorrect)
 					{
 						SwapCards(higherMindHand, valueForSwap);
 						SetHigherMindTurn();
@@ -178,13 +172,15 @@ bool Game::Update(float timeDelta)
 		else
 		{
 			timeForDelay += timeDelta;
-		}		
+		}
 		break;
+
 	default:
-		break; 
+		break;
 	}
-	return true; // Return based on your logic
+	return true;
 }
+
 void Game::Draw(sf::RenderWindow& window)
 {
 	window.draw(background);
@@ -230,10 +226,10 @@ void Game::SwapCards(Hand& receivingHand, Value& cardsValue)
 	receivingHand.TakeCards(*(WithWhomSwap()), cardsValue);
 	receivingHand.CheckFours();
 	WithWhomSwap()->NotChoosedForQuestions(); 
-	isGameOver();
+	checkGameOver();
 }
 
-void Game::isGameOver()
+void Game::checkGameOver()
 {
 	if (hands[0]->GetCards().size() == 0 && hands[1]->GetCards().size() == 0 && hands[2]->GetCards().size() == 0)
 	{

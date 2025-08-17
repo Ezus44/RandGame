@@ -20,13 +20,16 @@ class Game
 {
 public:
 	Game();
+	void InitDeck();
+	void DealCards();
 	~Game() = default;
 	void HandleWindowEvents(sf::RenderWindow& window);
+	void HandleAITurn(AIHand& aiHand, Hand& opponent1, Hand& opponent2, Value& value);
 	bool Update(float timeDelta); // Return false if game should be closed
 	void Draw(sf::RenderWindow& window);
 	void Shutdown();
 	void SwapCards(Hand& receivingHand, Value& cardsValue);
-	void isGameOver();
+	void checkGameOver();
 	void SetPlayerTurn() { if (gameState!=GameStateType::GameOver) { gameState = GameStateType::PlayerTurn; } }
 	void SetKingSlayerTurn() { if (gameState != GameStateType::GameOver) { gameState = GameStateType::KingSlayerTurn; } }
 	void SetHigherMindTurn() { if (gameState != GameStateType::GameOver) { gameState = GameStateType::HigherMindTurn; } }
@@ -47,6 +50,7 @@ private:
 
 	sf::RectangleShape background;
 	std::vector <Hand*>  hands;
+	std::vector <Card> cardsDeck;
 	PlayerHand playerHand; 
 	AIHand kingSlayerHand; 
 	AIHand higherMindHand; 
@@ -59,6 +63,6 @@ private:
 	size_t dialogSize = 0;
 	size_t currentDialogIndex = 0;
 	float timeForDelay = 0.f;
-	bool isRight = false;
+	bool guessCorrect = false;
 	Value valueForSwap = Value::A;
 };

@@ -12,7 +12,7 @@ public:
 private:
 	sf::Font font;
 	sf::Text finalScore;
-	Page firstPage;
+	std::unique_ptr<Page>  firstPage;
 	Menu menu;
 	sf::SoundBuffer menuBuffer;
 	sf::Sound menuSound;

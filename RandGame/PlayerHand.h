@@ -4,7 +4,6 @@ class PlayerHand : public Hand
 {
 public:
 	using Hand::Hand;
-	void PutOutCards() override;
 
 	void CheckFours() override;
 

@@ -34,11 +34,6 @@ void AIHand::DrawHand(sf::RenderWindow& window)
 	}
 }
 
-void AIHand::PutOutCards()
-{
-
-}
-
 void AIHand::HandleHandWindowEvent(const sf::Event& event)
 {
 	if (event.type == sf::Event::MouseButtonPressed)
@@ -56,23 +51,28 @@ void AIHand::HandleHandWindowEvent(const sf::Event& event)
 
 void AIHand::CheckFours()
 {
-	for (auto& card : handCards)
-	{
-		if (handCards.count(card.first) == 4)
-		{
-			foursCards.insert(card.first);
-			mind.LearnOutGameInfo(card.first);
-		}
-	}
-	foursNum = 0;
-	for (auto& four : foursCards)
-	{
-		++foursNum;
-		auto range = handCards.equal_range(four);
+    // Подсчёт количества карт каждого типа
+    std::unordered_map<Value, int> counts;
+    for (const auto& card : handCards)
+        ++counts[card.first];
 
-		handCards.erase(range.first, range.second);
-	}
-	info.setString(std::to_string(foursNum)); 
+    // Сохранение найденных "четвёрок"
+    for (const auto& [value, count] : counts)
+    {
+        if (count == 4)
+        {
+            foursCards.insert(value);
+            mind.LearnOutGameInfo(value);
+        }
+    }
+
+    // Удаление всех "четвёрок"
+    for (const auto& four : foursCards)
+        handCards.erase(four);
+
+    // Обновление числа четвёрок
+    foursNum = static_cast<int>(foursCards.size());
+    info.setString(std::to_string(foursNum));
 }
 
 

@@ -34,7 +34,7 @@ Hand::Hand(int num)
 	replica = "";
 	SetPlaceNum(num);
 	table.setSize(sf::Vector2f(200, 200));
-	table.setFillColor(sf::Color::Red);
+	table.setFillColor(sf::Color::Yellow);
 
 	assert(font.loadFromFile("Resources/Roboto-Black.ttf"));
 	info.setFont(font);
@@ -84,55 +84,42 @@ bool Hand::CheckCards(Value value)
 bool Hand::CheckCards(Value value, int numCards)
 {
 	auto cardsToTake = handCards.equal_range(value);
-	auto numTakenCards = std::distance(cardsToTake.first, cardsToTake.second);
-	if (numTakenCards == numCards)
-	{
-		return true;
-	}
-	return false;
+	return std::distance(cardsToTake.first, cardsToTake.second) == numCards;
 }
 
-bool Hand::CheckCards(Value value, int numCards, std::string color)
+bool Hand::CheckCards(Value value, int numCards, CardColor color)
 {
-	auto cardsToTake = handCards.equal_range(value); 
-	std::multimap<Value, Card> checkTheseCards; 
-	for (auto it = cardsToTake.first; it != cardsToTake.second; ++it) {
-		checkTheseCards.insert(*it);
-	}
-	int redCardCount = 0;
-	int blackCardCount = 0;
-	for (auto& pair : checkTheseCards) {
-		Suit cardSuit = pair.second.GetSuit();
-		if (cardSuit == Suit::Diamonds || cardSuit == Suit::Hearts) {
-			++redCardCount;
-		}
-		else if (cardSuit == Suit::Clubs || cardSuit == Suit::Spades) {
-			++blackCardCount;
-		}
-	}
+	auto cardsToTake = handCards.equal_range(value);
+
+	int redCardCount = static_cast<int>(std::count_if(cardsToTake.first, cardsToTake.second, [](auto& pair) {
+		Suit s = pair.second.GetSuit();
+		return s == Suit::Diamonds || s == Suit::Hearts;
+	}));
+
+	int blackCardCount = static_cast<int>(std::distance(cardsToTake.first, cardsToTake.second) - redCardCount);
 		
 	if (numCards == 1)
 	{
-		if (color == "Red" && redCardCount == 1 && blackCardCount == 0)
+		if (color == CardColor::Red && redCardCount == 1 && blackCardCount == 0)
 		{
 			return true;
 		}
-		else if (color == "Black" && redCardCount == 0 && blackCardCount == 1)
+		else if (color == CardColor::Black && redCardCount == 0 && blackCardCount == 1)
 		{
 			return true;
 		}
 	}
 	else if (numCards == 2)
 	{
-		if (color == "Red" && redCardCount == 2 && blackCardCount == 0)
+		if (color == CardColor::Red && redCardCount == 2 && blackCardCount == 0)
 		{
 			return true;
 		}
-		else if (color == "Black" && redCardCount == 0 && blackCardCount == 2)
+		else if (color == CardColor::Black && redCardCount == 0 && blackCardCount == 2)
 		{
 			return true;
 		}
-		else if (color == "Mixed" && redCardCount == 1 && blackCardCount == 1)
+		else if (color == CardColor::Mixed && redCardCount == 1 && blackCardCount == 1)
 		{
 			return true;
 		}
@@ -143,18 +130,8 @@ bool Hand::CheckCards(Value value, int numCards, std::string color)
 bool Hand::CheckCards(Value value, std::list<Suit> suits)
 {
 	auto cardsToTake = handCards.equal_range(value);
-	std::multimap<Value, Card> checkTheseCards;
-	for (auto it = cardsToTake.first; it != cardsToTake.second; ++it) {
-		checkTheseCards.insert(*it);
-	}
-	int cardCount = 0;
-	for (auto& checkCard : checkTheseCards)
-	{
-		if (std::ranges::find(suits, checkCard.second.GetSuit()) != suits.end())
-		{
-			++cardCount;
-		}
-	}
+	auto cardCount = std::distance(cardsToTake.first, cardsToTake.second);
+
 	if (cardCount == suits.size())
 	{
 		return true;

@@ -25,44 +25,46 @@ private:
 
 };
 
-class Page
-{
+class Page {
 public:
-	Page(Orientation orientation, Alignment alignment, float spacing) : 
-		pageOrientation( orientation ), pageAlignment( alignment ), pageSpacing( spacing ), nextPage( nullptr ) {}
-	void AddMenuItem(MenuItem& menuItem);
-	void SetNextPage(Page& nextPage);
+	Page(Orientation orientation, Alignment alignment, float spacing) :
+		pageOrientation(orientation), pageAlignment(alignment), pageSpacing(spacing), nextPage(nullptr) {
+	}
+	void AddMenuItem(std::unique_ptr<MenuItem> menuItem) {
+		menuItems.push_back(std::move(menuItem));
+	}
+	void SetNextPage(Page* nextPage) { this->nextPage = nextPage; }
+
+	const std::vector<std::unique_ptr<MenuItem>>& GetMenuItems() const { return menuItems; }
+	Page* GetNextPage() const { return nextPage; }
 	Orientation GetPageOrientation() const { return pageOrientation; }
 	Alignment GetPageAlignment() const { return pageAlignment; }
 	float GetPageSpacing() const { return pageSpacing; }
-	std::vector<MenuItem>& GetMenuItems() { return menuItems; }
-	Page* GetNextPage() { return nextPage; }
 
 private:
+	std::vector<std::unique_ptr<MenuItem>> menuItems;
+	Page* nextPage{ nullptr };
 	Orientation pageOrientation;
 	Alignment pageAlignment;
 	float pageSpacing;
-	std::vector<MenuItem> menuItems;
-	Page* nextPage;
-
 };
 
-class Menu
-{
+class Menu {
 public:
-	Menu(Page& page): currentPage(page), selectedItem(nullptr){}
+	Menu() : selectedItem(nullptr) {}
+	void SelectItem();
 	void Draw(sf::RenderWindow& window, sf::Vector2f position, sf::Vector2f origin);
 	void PressOnSelectedItem();
-	void SelectMenuItem(const MenuItem& item);
 	void SwitchToPreviousItem();
 	void SwitchToNextItem();
-	Page& GetCurrentContext() { return currentPage; }
 	void SwitchToNextPage();
-	void SelectItem();
+	void SelectMenuItem(MenuItem* item);
+	Page* GetCurrentContext() { return currentPage;	}
+	void SetCurrentPage(Page* page) { currentPage = page; }
 
 private:
-	MenuItem* selectedItem = nullptr;
-	Page& currentPage;
+	Page* currentPage{ nullptr };
+	MenuItem* selectedItem{ nullptr };
 };
 
 

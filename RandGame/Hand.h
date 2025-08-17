@@ -8,7 +8,6 @@ class Hand
 {
 public:
 	Hand(int num); 
-	virtual void PutOutCards() = 0;
 	std::multimap <Value, Card>& GetCards() { return handCards; }
 	int& GetFoursNum() { return foursNum; }
 	std::deque<std::string>& GetDialog() { return dialog; }
@@ -18,7 +17,7 @@ public:
 	virtual void CheckFours() = 0;
 	bool CheckCards(Value value);
 	bool CheckCards(Value value, int numCards);
-	bool CheckCards(Value value, int numCards, std::string color);
+	bool CheckCards(Value value, int numCards, CardColor color);
 	bool CheckCards(Value value, std::list <Suit> suits);
 	void AddCard(Card card)
 	{

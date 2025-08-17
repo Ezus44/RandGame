@@ -9,7 +9,6 @@ public:
 	{
 	}
 	void DrawHand(sf::RenderWindow& window) override;
-	void PutOutCards() override;
 	void HandleHandWindowEvent(const sf::Event& event);
 	void CheckFours() override;
 	AIMind& GetMind() { return mind; }

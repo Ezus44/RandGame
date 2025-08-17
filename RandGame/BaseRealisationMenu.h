@@ -10,6 +10,4 @@ class BaseRealisationMenu
 public:
 	virtual void HandleMenuWindowEvent(const sf::Event& event) = 0;
 	virtual void DrawMenu(sf::RenderWindow& window) = 0;
-
-\
 };
